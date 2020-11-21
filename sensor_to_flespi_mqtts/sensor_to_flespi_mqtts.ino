@@ -9,7 +9,7 @@
 #define MQTT_SERVER      "mqtt.flespi.io"
 #define MQTT_SERVERPORT  8883
 #define FLESPI_CERT_FINGERPRINT "6b4b7d8b78ecd7b7df253e969d5f1f9d3cb15157"
-#define OUTPUT_TOPIC       "ESP8266/sensors"
+#define OUTPUT_TOPIC       "ESP8266/sensor"
 #define INPUT_TOPIC      "ESP8266/input"
 #define FLESPI_TOKEN    "FlespiToken pUgcWLHBBPPcrVYPwXB8tXC8L4fTZAFejJg5lLxKoaMFWyjglIeEvEB7wEOl4jpd"
 
@@ -66,11 +66,11 @@ void setup() {
   client.setFingerprint(FLESPI_CERT_FINGERPRINT);
 
   mqtt.subscribe(&input);
-  
+
 }
 
 void loop() {
-  
+
   message_object["soil_humidity"] = get_soil_moisture_value();
   message_object["humidity"] = get_humidity_value();
   message_object["temperature_c"] = get_temperature_value();
@@ -88,7 +88,6 @@ void loop() {
   // cleanup memory used
   memset(message_string_buf, 0, STATIC_MESSAGE_BUF_LEN);
 
-  
   Adafruit_MQTT_Subscribe *subscription;
   while ((subscription = mqtt.readSubscription(time_value))) {
     if (subscription == &input) {
@@ -98,6 +97,6 @@ void loop() {
       Serial.println(" miliSeconds");
       time_value = ledBrightValue;
       Serial.println(time_value);
-    }
+      }
   }
 }
