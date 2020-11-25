@@ -20,6 +20,7 @@
 #include "DHT_Sensor.h"
 #include "adafruit_mqtts.h"
 #include "soil_moisture_sensor.h"
+#include "SH1106Display.h"
 /********************* Global connection instances **************************/
 
 // WiFiFlientSecure for SSL/TLS support
@@ -36,12 +37,14 @@ char message_string_buf[STATIC_MESSAGE_BUF_LEN];   // to use in mqtt publish fun
 
 // variables for testing
 int time_value = 5000;
+bool isAnimationRunning = false;
 
 /*************************** Sketch Code ************************************/
 // Generic example for ESP8266 wifi connection
 void setup() {
   Serial.begin(115200);
   dht.begin();
+  DisplaySetup();
   delay(10);
 
   // Connect to WiFi access point.
@@ -69,12 +72,11 @@ void setup() {
 
 }
 
-void loop() {
-
+void loop() {  
   message_object["soil_humidity"] = get_soil_moisture_value();
   message_object["humidity"] = get_humidity_value();
   message_object["temperature_c"] = get_temperature_value();
-
+  animateSmile(get_soil_moisture_value(), get_temperature_value(), get_humidity_value());
   // establish MQTT connection
   MQTT_connect(mqtt);
 
