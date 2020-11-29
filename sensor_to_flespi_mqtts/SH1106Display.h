@@ -6,7 +6,6 @@ SH1106Wire display(0x3c, 4, 5);     // ADDRESS, SDA, SCL
 
 typedef void (*Demo)(void);
 int demoMode = 0;
-int counter = 0;
 
 void DisplaySetup() {
   // Initialising the UI will init the display too.
@@ -101,42 +100,6 @@ void smileFrame27() {
     display.drawXbm(40, 10, width, height, smile27);
 }
 
-void drawProgressBarDemo(int counter) {
-  int progress = counter % 100;
-  // draw the progress bar
-  display.drawProgressBar(0, 38, 120, 10, progress);
-
-  // draw the percentage as String
-  display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.setFont(ArialMT_Plain_10);
-  display.drawString(64, 5, "Soil Moisture");
-  display.drawString(64, 21, String(progress) + "%");
-}
-
-void drawProgressBar2Demo(int counter) {
-  int progress = counter % 100;
-  // draw the progress bar
-  display.drawProgressBar(0, 38, 120, 10, progress);
-
-  // draw the percentage as String
-  display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.setFont(ArialMT_Plain_10);
-  display.drawString(64, 5, "Temperature");
-  display.drawString(64, 21, String(progress) + "*C");
-}
-
-void drawProgressBar3Demo(int counter) {
-  int progress = counter % 100;
-  // draw the progress bar
-  display.drawProgressBar(0, 38, 120, 10, progress);
-
-  // draw the percentage as String
-  display.setTextAlignment(TEXT_ALIGN_CENTER);
-  display.setFont(ArialMT_Plain_10);
-  display.drawString(64, 5, "Air Humidity");
-  display.drawString(64, 21, String(progress) + "%");
-}
-
 Demo demos[] = {smileFrame0,
                 smileFrame1,
                 smileFrame2,
@@ -169,74 +132,143 @@ Demo demos[] = {smileFrame0,
 int demoLength = (sizeof(demos) / sizeof(Demo));
 long timeSinceLastModeSwitch = 0;
 
-static void animateSmile(int soilMoistureValue, int temperatureValue, int humidityValue) {
-  for(int i = 0; i < sizeof(demos); i++){
+void SoilProgressBar(int counter) {
+  int progress = counter % 100;
+  // draw the progress bar
+  display.drawProgressBar(0, 38, 120, 10, progress);
+
+  // draw the percentage as String
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(64, 5, "Soil Moisture");
+  display.drawString(64, 21, String(progress) + "%");
+}
+
+void TemperatureProgressBar(int counter) {
+  int progress = counter % 100;
+  // draw the progress bar
+  display.drawProgressBar(0, 38, 120, 10, progress);
+
+  // draw the percentage as String
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(64, 5, "Temperature");
+  display.drawString(64, 21, String(progress) + "*C");
+}
+
+void HumidityProgressBar(int counter) {
+  int progress = counter % 100;
+  // draw the progress bar
+  display.drawProgressBar(0, 38, 120, 10, progress);
+
+  // draw the percentage as String
+  display.setTextAlignment(TEXT_ALIGN_CENTER);
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(64, 5, "Air Humidity");
+  display.drawString(64, 21, String(progress) + "%");
+}
+
+unsigned long previousMillis = 0;
+int animationSoilIndex = 0;
+
+void animateHappy(long currentMillis) {
+  if (currentMillis - previousMillis >= 60) {
+    previousMillis = currentMillis;
+    
     // clear the display
     display.clear();
     demos[demoMode]();
     display.display();
     demoMode = (demoMode + 1)  % demoLength;
-    delay(60);
   }
-  display.clear();
-  display.display();
-  
-  for(int i = 0; i < soilMoistureValue; i++){
-    // clear the display
-    display.clear();
-    drawProgressBarDemo(i);
-    display.display();    
-    delay(10);
-  }
-  delay(3000);
-  display.clear();
-  display.display();
+}
 
-  if(temperatureValue > soilMoistureValue){
-    for(int i = soilMoistureValue; i < temperatureValue; i++){
+void animateSoilMoistureProgressBar(long currentMillis, int soilMoistureValue){
+  if (currentMillis - previousMillis >= 20) {
+    if(soilMoistureValue > animationSoilIndex){
+      previousMillis = currentMillis;
       // clear the display
       display.clear();
-      drawProgressBar2Demo(i);
-      display.display();    
-      delay(10);
-      }
-      delay(3000);
-      display.clear();
+      SoilProgressBar(animationSoilIndex);
       display.display();
-    } else {
-      for(int i = soilMoistureValue; i >= temperatureValue; i--){
+      if(soilMoistureValue > animationSoilIndex){
+        animationSoilIndex++;
+      }
+    }else if(soilMoistureValue < animationSoilIndex){
+      previousMillis = currentMillis;
       // clear the display
       display.clear();
-      drawProgressBar2Demo(i);
-      display.display();    
-      delay(10);
+      SoilProgressBar(animationSoilIndex);
+      display.display();
+      if(soilMoistureValue < animationSoilIndex){
+        animationSoilIndex--;
       }
-      delay(3000);
+    }else if(soilMoistureValue == animationSoilIndex){
+      previousMillis = currentMillis;
+      // clear the display
       display.clear();
+      SoilProgressBar(animationSoilIndex);
       display.display();
     }
+  }
+}
 
-    if(humidityValue > temperatureValue){
-    for(int i = temperatureValue; i <= humidityValue; i++){
+void animateTeperatureProgressBar(long currentMillis, int temperatureValue){
+  if (currentMillis - previousMillis >= 20) {
+    if(temperatureValue > animationSoilIndex){
+      previousMillis = currentMillis;
       // clear the display
       display.clear();
-      drawProgressBar3Demo(i);
-      display.display();    
-      delay(10);
-      }
-      delay(1000);
-      display.clear();
+      TemperatureProgressBar(animationSoilIndex);
       display.display();
-    } else {
-      for(int i = temperatureValue; i >= humidityValue; i--){
+      if(temperatureValue > animationSoilIndex){
+        animationSoilIndex++;
+      }
+    }else if(temperatureValue < animationSoilIndex){
+      previousMillis = currentMillis;
       // clear the display
       display.clear();
-      drawProgressBar3Demo(i);
-      display.display();    
-      delay(10);
+      TemperatureProgressBar(animationSoilIndex);
+      display.display();
+      if(temperatureValue < animationSoilIndex){
+        animationSoilIndex--;
       }
-      delay(3000);
+    }else if(temperatureValue == animationSoilIndex){
+      previousMillis = currentMillis;
+      // clear the display
       display.clear();
+      TemperatureProgressBar(animationSoilIndex);
       display.display();
     }
+  }
+}
+
+void animateHumidityProgressBar(long currentMillis, int humidityValue){
+  if (currentMillis - previousMillis >= 20) {
+    if(humidityValue > animationSoilIndex){
+      previousMillis = currentMillis;
+      // clear the display
+      display.clear();
+      HumidityProgressBar(animationSoilIndex);
+      display.display();
+      if(humidityValue > animationSoilIndex){
+        animationSoilIndex++;
+      }
+    }else if(humidityValue < animationSoilIndex){
+      previousMillis = currentMillis;
+      // clear the display
+      display.clear();
+      HumidityProgressBar(animationSoilIndex);
+      display.display();
+      if(humidityValue < animationSoilIndex){
+        animationSoilIndex--;
+      }
+    }else if(humidityValue == animationSoilIndex){
+      previousMillis = currentMillis;
+      // clear the display
+      display.clear();
+      HumidityProgressBar(animationSoilIndex);
+      display.display();
+    }
+  }
 }

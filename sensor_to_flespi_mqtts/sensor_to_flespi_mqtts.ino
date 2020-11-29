@@ -35,9 +35,17 @@ JSONVar message_object;         // to store message parameters
 String json_msg_string;         // to stringify JSON message object
 char message_string_buf[STATIC_MESSAGE_BUF_LEN];   // to use in mqtt publish function
 
-// variables for testing
-int time_value = 5000;
-bool isAnimationRunning = false;
+String device_id = "87761e13-d509-4aa4-8dca-6e0915f6645b";
+int SoilMoistureValue = 0; 
+int HumidityValue = 0;
+int TemperatureValue = 0;
+
+
+// thead handling
+  //Reading values
+int readValuesOffTime = 5000;
+unsigned long readValuesPreviousMillis = 0;
+
 
 /*************************** Sketch Code ************************************/
 // Generic example for ESP8266 wifi connection
@@ -69,36 +77,85 @@ void setup() {
   client.setFingerprint(FLESPI_CERT_FINGERPRINT);
 
   mqtt.subscribe(&input);
-
 }
 
-void loop() {  
-  message_object["soil_humidity"] = get_soil_moisture_value();
-  message_object["humidity"] = get_humidity_value();
-  message_object["temperature_c"] = get_temperature_value();
-  animateSmile(get_soil_moisture_value(), get_temperature_value(), get_humidity_value());
-  // establish MQTT connection
-  MQTT_connect(mqtt);
+int level = 0;
+unsigned long timeInterval = 5000;
 
-  // send data to flespi MQTT broker via secure connection
-  json_msg_string = JSON.stringify(message_object);
-  json_msg_string.toCharArray(message_string_buf, json_msg_string.length() + 1);
-  Serial.print("Publishing message to broker: ");
-  Serial.println(message_string_buf);
-  flespi.publish(message_string_buf);
+unsigned long onTime = 5000;
 
-  // cleanup memory used
-  memset(message_string_buf, 0, STATIC_MESSAGE_BUF_LEN);
+void loop() {
+
+  unsigned long currentMillis = millis();
+  
+  if((level == 0)){
+    animateHappy(currentMillis);
+    if(currentMillis >= onTime){
+      onTime = currentMillis + timeInterval;
+      animateHappy(currentMillis);
+      level = 1;
+    }
+  }else if((level == 1)){
+    animateSoilMoistureProgressBar(currentMillis, SoilMoistureValue);
+    if(currentMillis >= onTime){
+      onTime = currentMillis + timeInterval;
+      animateSoilMoistureProgressBar(currentMillis, SoilMoistureValue);
+      level = 2;
+    }
+  }else if((level == 2)){
+    animateTeperatureProgressBar(currentMillis, TemperatureValue);
+    if(currentMillis >= onTime){
+      onTime = currentMillis + timeInterval;
+      animateTeperatureProgressBar(currentMillis, TemperatureValue);
+      level = 3;
+    }
+  }else if((level == 3)){
+    animateHumidityProgressBar(currentMillis, HumidityValue);
+    if(currentMillis >= onTime){
+      onTime = currentMillis + timeInterval;
+      animateTeperatureProgressBar(currentMillis, HumidityValue);
+      level = 0;
+    }
+  }
+  
+  
+  
+  if (currentMillis - readValuesPreviousMillis >= readValuesOffTime) {
+    readValuesPreviousMillis = currentMillis;
+
+    SoilMoistureValue = get_soil_moisture_value();
+    HumidityValue = get_humidity_value();
+    TemperatureValue = get_temperature_value();
+
+    message_object["soil_humidity"] = SoilMoistureValue;
+    message_object["humidity"] = HumidityValue;
+    message_object["temperature_c"] = TemperatureValue;
+    message_object["device_id"] = device_id;
+    
+    // establish MQTT connection
+    MQTT_connect(mqtt);
+
+    // send data to flespi MQTT broker via secure connection
+    json_msg_string = JSON.stringify(message_object);
+    json_msg_string.toCharArray(message_string_buf, json_msg_string.length() + 1);
+    Serial.print("Publishing message to broker: ");
+    Serial.println(message_string_buf);
+    flespi.publish(message_string_buf);
+
+    // cleanup memory used
+    memset(message_string_buf, 0, STATIC_MESSAGE_BUF_LEN);
+  }
+
 
   Adafruit_MQTT_Subscribe *subscription;
-  while ((subscription = mqtt.readSubscription(time_value))) {
+  while ((subscription = mqtt.readSubscription(10))) {
     if (subscription == &input) {
       Serial.print(F("changed time intervals to "));
       uint16_t ledBrightValue = atoi((char *)input.lastread);
       Serial.print(ledBrightValue);
       Serial.println(" miliSeconds");
-      time_value = ledBrightValue;
-      Serial.println(time_value);
-      }
+      readValuesOffTime = ledBrightValue;
+      Serial.println(readValuesOffTime);
+    }
   }
 }
