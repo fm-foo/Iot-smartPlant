@@ -1,4 +1,5 @@
 #include <ESP8266WiFi.h>
+#include <WiFiManager.h> 
 #include <Arduino_JSON.h>
 #include "DHT.h"
 
@@ -22,7 +23,8 @@
 #include "soil_moisture_sensor.h"
 #include "SH1106Display.h"
 /********************* Global connection instances **************************/
-
+// WifiManager for connecting to wifi
+WiFiManager wm;
 // WiFiFlientSecure for SSL/TLS support
 WiFiClientSecure client;
 // Setup the MQTT client class by passing in the WiFi client and MQTT server and login details.
@@ -41,48 +43,73 @@ int HumidityValue = 0;
 int TemperatureValue = 0;
 
 
-// thead handling
-  //Reading values
+// thread handling
+//Reading values
 int readValuesOffTime = 5000;
 unsigned long readValuesPreviousMillis = 0;
 
+int level = 0; // level indicates which thread to do
+unsigned long timeInterval = 5000;
+unsigned long onTime = 5000; // time on activity 5seconds
+
 
 /*************************** Sketch Code ************************************/
-// Generic example for ESP8266 wifi connection
+
+
 void setup() {
+  WiFi.mode(WIFI_STA);  
   Serial.begin(115200);
-  dht.begin();
-  DisplaySetup();
-  delay(10);
+  Serial.setDebugOutput(true);  
+  delay(3000);
+  Serial.println("\n Starting");
 
-  // Connect to WiFi access point.
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(WLAN_SSID);
 
-  delay(1000);
+  wm.setSaveParamsCallback(saveParamCallback);
+  
+  std::vector<const char *> menu = {"wifi","info","sep","restart","exit"};
+  wm.setMenu(menu);
 
-  WiFi.begin(WLAN_SSID, WLAN_PASS);
-  delay(2000);
+  // set dark theme
+  wm.setClass("invert");
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  wm.setConfigPortalTimeout(300); // auto close configportal after n seconds
+
+  bool res;
+  res = wm.autoConnect("SmartPlant");
+
+  if(!res) {
+    Serial.println("Failed to connect or hit timeout");
+    ESP.restart();
   }
-  Serial.println();
-
-  Serial.println("WiFi connected");
-  Serial.println("IP address: "); Serial.println(WiFi.localIP());
-
-  client.setFingerprint(FLESPI_CERT_FINGERPRINT);
-
-  mqtt.subscribe(&input);
+  else {
+    // Connection established... proceed....
+    Serial.println("connected...yeey :)");
+    dht.begin();
+    DisplaySetup();
+    delay(10);
+    
+    client.setFingerprint(FLESPI_CERT_FINGERPRINT);
+  
+    mqtt.subscribe(&input);
+  }
 }
 
-int level = 0;
-unsigned long timeInterval = 5000;
+String getParam(String name){
+  //read parameter from server, for customhmtl input
+  String value;
+  if(wm.server->hasArg(name)) {
+    value = wm.server->arg(name);
+  }
+  return value;
+}
 
-unsigned long onTime = 5000;
+void saveParamCallback(){
+  Serial.println("[CALLBACK] saveParamCallback fired");
+  Serial.println("PARAM customfieldid = " + getParam("customfieldid"));
+}
+
+
+
 
 void loop() {
 
