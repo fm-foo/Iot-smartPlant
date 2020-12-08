@@ -10,7 +10,7 @@
 #define MQTT_SERVER      "mqtt.flespi.io"
 #define MQTT_SERVERPORT  8883
 #define FLESPI_CERT_FINGERPRINT "6b4b7d8b78ecd7b7df253e969d5f1f9d3cb15157"
-#define OUTPUT_TOPIC       "ESP8266/sensor"
+#define OUTPUT_TOPIC       "ESP8266/smartPlant"
 #define INPUT_TOPIC      "ESP8266/input"
 #define FLESPI_TOKEN    "FlespiToken pUgcWLHBBPPcrVYPwXB8tXC8L4fTZAFejJg5lLxKoaMFWyjglIeEvEB7wEOl4jpd"
 
