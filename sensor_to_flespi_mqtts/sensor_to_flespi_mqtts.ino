@@ -1,4 +1,3 @@
-#include <ESP8266WiFi.h>
 #include <WiFiManager.h> 
 #include <Arduino_JSON.h>
 #include "DHT.h"
@@ -51,8 +50,7 @@ unsigned long readValuesPreviousMillis = 0;
 int level = 0; // level indicates which thread to do
 unsigned long timeInterval = 5000;
 unsigned long onTime = 5000; // time on activity 5seconds
-
-
+const int led = 16; 
 /*************************** Sketch Code ************************************/
 
 
@@ -89,7 +87,9 @@ void setup() {
     delay(10);
     
     client.setFingerprint(FLESPI_CERT_FINGERPRINT);
-  
+
+    pinMode(led, OUTPUT);
+    digitalWrite(led, LOW); // keep the pump off at first
     mqtt.subscribe(&input);
   }
 }
@@ -113,8 +113,15 @@ void saveParamCallback(){
 
 void loop() {
 
-  unsigned long currentMillis = millis();
+
+  if(get_soil_moisture_value() <= 20){
+      digitalWrite(led, HIGH); 
+    }else if(get_soil_moisture_value() > 35){
+      digitalWrite(led, LOW);
+    }
+
   
+  unsigned long currentMillis = millis();
   if((level == 0)){
     animateHappy(currentMillis);
     if(currentMillis >= onTime){

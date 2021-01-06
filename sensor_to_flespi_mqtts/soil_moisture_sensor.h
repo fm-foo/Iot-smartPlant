@@ -1,5 +1,5 @@
-const int dry = 840; //dry value
-const int wet = 475; //wet value
+const int dry = 860; //dry value
+const int wet = 410; //wet value
 
 
 int get_soil_moisture_value() {
